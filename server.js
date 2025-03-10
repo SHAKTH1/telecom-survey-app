@@ -8,7 +8,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // <-- Import jsonwebtoken
 
 const app = express();
-const port = process.env.PORT || 80;  // Use port 8080
+const port = process.env.PORT || 8080;  // Use port 8080
 
 
 // Replace with a safer secret in production (use environment variables)

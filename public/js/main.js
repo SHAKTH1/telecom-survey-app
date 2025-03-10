@@ -376,6 +376,7 @@ window.navigateRoute = async function(lng, lat, type) {
     alert("Error requesting route. See console for details.");
   }
 };
+
 /****************************************************************************
  * finishChecklist, showBrownChecklistForm, showGreenChecklistForm
  * These functions remain the same as in your code. We only changed how

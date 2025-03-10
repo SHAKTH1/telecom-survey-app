@@ -1,10 +1,10 @@
-// sw.js
 const CACHE_NAME = 'telecom-survey-cache-v1';
 const urlsToCache = [
-  '/survey.html',
+  '/',
   '/login.html',
-  '/js/main.js',
-  '/css/style.css',
+  '/css/login.css',
+  '/css/mobile.css',
+  '/js/login.js',
   '/manifest.json',
   '/images/icons/icon-192x192.png',
   '/images/icons/icon-512x512.png'
@@ -23,8 +23,6 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
-      })
+      .then(response => response || fetch(event.request))
   );
 });

@@ -4,14 +4,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusDiv = document.getElementById('status');
   
 
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(err => {
+          console.error('Service Worker registration failed:', err);
         });
-      }
-    
+    });
+  }
+
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const username = document.getElementById('username').value;
