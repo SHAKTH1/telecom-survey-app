@@ -3,7 +3,7 @@
 # Variables (update these as needed)
 REPO_URL="https://github.com/SHAKTH1/telecom-survey-app.git"
 APP_DIR="/home/ec2-user/telecomapp/telecom-survey-app"
-PORT=8080
+PORT=80  # Set this to 80 instead of 8080
 
 echo "Stopping any running instance of the app..."
 # Option 1: If you use pm2 (recommended for production)
@@ -32,6 +32,9 @@ if [ $? -ne 0 ]; then
   echo "npm install failed. Exiting."
   exit 1
 fi
+
+echo "Setting PORT environment variable to $PORT..."
+export PORT=$PORT
 
 echo "Starting the application on port $PORT..."
 # Option A: For development, run in the background using nohup:
