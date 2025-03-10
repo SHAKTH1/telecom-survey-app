@@ -1,0 +1,190 @@
+/* mobile.css */
+
+/* Reset default margins/padding, ensure full height */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+  }
+  
+  /* Apply box-sizing to all elements */
+  *, *::before, *::after {
+    box-sizing: inherit;
+  }
+  
+  /* ====== HEADER STYLES ====== */
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: #3f51b5;
+    color: #fff;
+    /* remove the old "display: flex; justify-content: center;" */
+    display: block;        /* or you can keep display: flex if you want, but normal block is simpler here */
+    text-align: center;    /* center the text (the h1) horizontally */
+    line-height: 60px;     /* optional: vertically center if you remove the h1 margins */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+  }
+  
+  
+  header h1 {
+    margin: -20px;
+    font-size: 1.2rem;
+  }
+  
+  /* The menu icon at the top-left for toggling side panel */
+  .menu-icon {
+    font-size: 28px;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;                   /* Center vertically in header */
+    left: 15px;
+    transform: translateY(-50%);
+  }
+  
+  /* Logout button at the right */
+#logoutButton {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    padding: 5px 10px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    /* optionally add background or hover styles here */
+  }
+  /* ====== MAP STYLES ====== */
+  /* Make #map fill everything below the 60px header */
+  #map {
+    position: absolute;
+    top: 60px;                  /* Start below the header */
+    left: 0;
+    right: 0;
+    bottom: 0;                 /* Fill rest of screen height */
+    width: 100%;
+    /* No min-height needed; it fills the screen now */
+  }
+  
+  /* ====== SIDE PANEL STYLES ====== */
+  .side-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    max-width: 80%;
+    height: 100%;
+    background: #f4f4f4;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 2000;  /* Above map & header */
+    overflow-y: auto;
+  }
+  
+  .side-panel.open {
+    transform: translateX(0);
+  }
+  
+  .side-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #3f51b5;
+    color: #fff;
+    padding: 10px;
+  }
+  
+  .close-panel {
+    cursor: pointer;
+    font-size: 24px;
+  }
+  
+  .side-panel-content {
+    padding: 15px;
+  }
+  
+  /* ====== CURRENT LOCATION BUTTON ====== */
+  .current-location-button {
+    position: absolute;   /* So it can float on the map */
+    bottom: 20px;
+    right: 20px;
+    z-index: 2100;        /* Above the map but below side panel */
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+  }
+  
+  .current-location-button img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  
+  /* ====== LOGIN PAGE STYLES ====== */
+  /* Container for the login form */
+  .login-container {
+    max-width: 400px;
+    margin: 80px auto; /* Some top margin so it doesn't hide behind fixed header if used there */
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .login-container form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .login-container label {
+    margin: 8px 0 4px;
+    font-weight: bold;
+  }
+  
+  .login-container input[type="text"],
+  .login-container input[type="password"] {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .login-container button {
+    padding: 10px;
+    background: #3f51b5;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .login-container button:hover {
+    background: #303f9f;
+  }
+  
+  .status-message {
+    margin-top: 10px;
+    text-align: center;
+    color: red;
+  }
+  
+  /* ====== MEDIA QUERIES ====== */
+  @media (max-width: 600px) {
+    /* Possibly reduce header height on very small screens */
+    header {
+      height: 50px;
+    }
+    #map {
+      top: 50px;
+    }
+    .login-container {
+      width: 90%;
+      margin: 60px auto; /* Adjust if needed */
+    }
+  }
+  

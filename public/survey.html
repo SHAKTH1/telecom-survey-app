@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Telecom Survey App - Map</title>
+  <!-- Ensure the page is mobile-responsive -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Your main desktop styles -->
+  <link rel="stylesheet" href="./css/style.css">
+  <!-- Your mobile-specific overrides/responsive styles -->
+  <link rel="stylesheet" href="./css/mobile.css">
+  
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Ola Maps Web SDK -->
+  <script src="https://www.unpkg.com/olamaps-web-sdk@latest/dist/olamaps-web-sdk.umd.js"></script>
+</head>
+<body>
+  <header>
+    <div id="menuIcon" class="menu-icon">☰</div>
+    <h1>Telecom Survey Map</h1>
+  </header>
+
+  <!-- Remove the inline style that sets height to 500px -->
+  <!-- Just leave it as an empty #map container; CSS will size it. -->
+  <div id="map"></div>
+
+  <div id="currentLocationButton" class="current-location-button">
+    <img src="./assets/get_current_location.png" alt="Get Current Location">
+  </div>
+
+  <div id="sidePanel" class="side-panel">
+    <div class="side-panel-header">
+      <span id="closePanel" class="close-panel">×</span>
+      <h2>Side Panel</h2>
+    </div>
+    <div class="side-panel-content">
+      <!-- Will be populated dynamically -->
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lamejs@1.2.0/lame.min.js"></script>
+  <script src="./js/main.js"></script>
+</body>
+</html>

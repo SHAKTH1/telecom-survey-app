@@ -1,0 +1,127 @@
+/* public/login.css */
+
+/* 
+   A subtle gradient background to make the page look more modern.
+   We'll also center the main content vertically if you prefer. 
+*/
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    /* Fancy gradient background */
+    background: linear-gradient(135deg, #e0e0e0, #f7f7f7);
+    /* If you want the entire page to center the content, 
+       you can do something like this:
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       min-height: 100vh;
+    */
+  }
+  
+  /* The header */
+  header {
+    text-align: center;
+    padding: 20px;
+    background: #3f51b5;
+    color: #fff;
+    margin-bottom: 20px;
+    /* subtle box-shadow */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  
+  header h1 {
+    margin: -20px;
+    font-size: 1.8rem;
+  }
+  
+  /* The container that holds the form */
+  .login-container {
+    /* If not using flex from body, center using margin auto */
+    max-width: 400px;
+    width: 90%;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    margin: 30px auto;
+    padding: 20px;
+    animation: fadeInUp 0.7s ease both; /* fallback if fade-in class is missed */
+  }
+  
+  /* The fade-in class for a subtle fade/slide effect */
+  .fade-in {
+    animation: fadeInUp 0.7s ease both;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* The login form styling */
+  #loginForm {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #loginForm label {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  #loginForm input[type="text"],
+  #loginForm input[type="password"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+  
+  #loginForm input[type="text"]:focus,
+  #loginForm input[type="password"]:focus {
+    border-color: #3f51b5;
+  }
+  
+  /* The submit button */
+  #loginForm button {
+    padding: 12px;
+    margin-top: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    background: #3f51b5;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+  }
+  
+  #loginForm button:hover {
+    background: #303f9f;
+    transform: scale(1.03);
+  }
+  
+  /* The status message below the form */
+  #status {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 18px;
+    color: red;
+  }
+  
+  /* 
+    If you want a subtle transition on body background 
+    or the container, you can add more transitions or 
+    keyframe animations as desired. 
+  */
+  
