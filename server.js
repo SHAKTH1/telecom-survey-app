@@ -10,7 +10,6 @@ const jwt = require('jsonwebtoken');  // <-- Import jsonwebtoken
 const app = express();
 const port = process.env.PORT || 8080;  // Use port 8080
 
-
 // Replace with a safer secret in production (use environment variables)
 const JWT_SECRET = 'shakthi';
 
@@ -26,9 +25,14 @@ app.get('/', (req, res) => {
 // 3) Serve static files from "public" directory
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
-// 4) MongoDB connection
+// 4) MongoDB connection with extra TLS options for development
 const atlasUri = 'mongodb+srv://shakthi:shakthi@cluster0.shxml.mongodb.net/fleet_management_prehoto?retryWrites=true&w=majority';
-mongoose.connect(atlasUri, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(atlasUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  tls: true,                            // ensure TLS is used
+  tlsAllowInvalidCertificates: true     // allow invalid certificates (development only)
+})
   .then(() => console.log('MongoDB (Atlas) connected'))
   .catch(err => console.log(err));
 
@@ -141,13 +145,13 @@ app.get('/api/site-assignments/:team', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-  
+
 // 12) Test endpoint
 app.get('/api', (req, res) => {
   res.send('Telecom Survey App API is running');
 });
 
+// Listen on all network interfaces (0.0.0.0)
 app.listen(port, '0.0.0.0', () => {
-    console.log(`Server is running on port ${port}`);
-  });
-  
+  console.log(`Server is running on port ${port}`);
+});
