@@ -740,7 +740,6 @@ function getGreenChecklistRows() {
     </tr>
   `;
 }
-
 /****************************************************************************
  * 1) The Upload Group Markup
  ****************************************************************************/
@@ -864,7 +863,6 @@ function openAudioRecorderPopup(buttonElement) {
   const startBtn = document.createElement('button');
   startBtn.id = 'startRecording';
   startBtn.textContent = 'Start Recording';
-  startBtn.style.marginRight = '10px';
   styleRecorderButton(startBtn);
   buttonsDiv.appendChild(startBtn);
 
@@ -874,6 +872,7 @@ function openAudioRecorderPopup(buttonElement) {
   stopBtn.textContent = 'Stop Recording';
   stopBtn.disabled = true;
   styleRecorderButton(stopBtn);
+  stopBtn.style.marginLeft = '10px';
   buttonsDiv.appendChild(stopBtn);
 
   // Container for audio playback preview
@@ -892,6 +891,7 @@ function openAudioRecorderPopup(buttonElement) {
     return;
   }
 
+  // Start the actual recording
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
       const options = { mimeType: 'audio/webm; codecs=opus' };
@@ -936,15 +936,28 @@ function openAudioRecorderPopup(buttonElement) {
         `;
         statusEl.textContent = "Recording complete.";
 
-        // Add Replay & Delete inside the popup
+        // Add Replay, Delete, and **Submit** inside the popup
+        const buttonArea = document.createElement('div');
+        buttonArea.style.marginTop = '10px';
+
         const replayBtn = document.createElement('button');
         replayBtn.textContent = 'Replay';
         styleRecorderButton(replayBtn);
-        replayBtn.style.marginRight = '10px';
+        buttonArea.appendChild(replayBtn);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = 'Delete';
         styleRecorderButton(deleteBtn);
+        deleteBtn.style.marginLeft = '10px';
+        buttonArea.appendChild(deleteBtn);
+
+        const submitBtn = document.createElement('button');
+        submitBtn.textContent = 'Submit';
+        styleRecorderButton(submitBtn);
+        submitBtn.style.marginLeft = '10px';
+        buttonArea.appendChild(submitBtn);
+
+        audioPreview.appendChild(buttonArea);
 
         // Replay logic
         replayBtn.addEventListener('click', () => {
@@ -955,22 +968,21 @@ function openAudioRecorderPopup(buttonElement) {
           }
         });
 
-        // Delete logic
+        // Delete logic (removes from hidden input)
         deleteBtn.addEventListener('click', () => {
           audioPreview.innerHTML = '';
           statusEl.textContent = "Recording deleted.";
-          // If you want to remove from the hidden input so it doesn't get saved:
+          // Remove from hidden input so it’s not saved
           storeRecordedAudio(buttonElement, null);
         });
 
-        const btnDiv = document.createElement('div');
-        btnDiv.style.marginTop = '10px';
-        btnDiv.appendChild(replayBtn);
-        btnDiv.appendChild(deleteBtn);
-        audioPreview.appendChild(btnDiv);
-
-        // Store the audio in hidden input (unless user deletes)
-        storeRecordedAudio(buttonElement, audioURL, options.mimeType);
+        // Submit logic (keeps the audio and closes the popup)
+        submitBtn.addEventListener('click', () => {
+          // Actually store the audio in hidden input
+          storeRecordedAudio(buttonElement, audioURL, options.mimeType);
+          // Close the modal
+          document.body.removeChild(modal);
+        });
       };
 
       startBtn.addEventListener('click', e => {
@@ -1011,7 +1023,7 @@ function styleRecorderButton(btn) {
 
 /****************************************************************************
  * 5) storeRecordedAudio
- * Appends the recorded audio URL to the hidden field in the upload group.
+ * Appends or removes the recorded audio URL in the hidden field in the upload group.
  ****************************************************************************/
 function storeRecordedAudio(buttonElement, audioURL, mimeType = 'audio/webm') {
   const uploadGroupElem = buttonElement.closest('.upload-group');
@@ -1024,12 +1036,13 @@ function storeRecordedAudio(buttonElement, audioURL, mimeType = 'audio/webm') {
   }
   if (audioURL === null) {
     // Means user clicked "Delete" after finishing
-    // Remove the last entry if it's a webm
+    // Remove the last entry if it's 'audio/webm'
     const idx = uploadsArray.findIndex(item => item.fileType === 'audio/webm');
     if (idx !== -1) {
       uploadsArray.splice(idx, 1);
     }
   } else {
+    // Actually store (or replace) the new recording
     uploadsArray.push({
       mediaType: 'audio',
       fileName: 'recorded_audio.webm',
