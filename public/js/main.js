@@ -936,7 +936,7 @@ function openAudioRecorderPopup(buttonElement) {
         `;
         statusEl.textContent = "Recording complete.";
 
-        // Add Replay, Delete, and **Submit** inside the popup
+        // Add Replay, Delete, and Submit inside the popup
         const buttonArea = document.createElement('div');
         buttonArea.style.marginTop = '10px';
 
@@ -976,11 +976,20 @@ function openAudioRecorderPopup(buttonElement) {
           storeRecordedAudio(buttonElement, null);
         });
 
-        // Submit logic (keeps the audio and closes the popup)
+        // Submit logic (keeps the audio, shows it in the checklist, closes popup)
         submitBtn.addEventListener('click', () => {
-          // Actually store the audio in hidden input
+          // Create a record to show in the preview container
+          const newAudioItem = {
+            mediaType: 'audio',
+            fileName: 'recorded_audio.webm',
+            fileType: options.mimeType,
+            blobURL: audioURL
+          };
+          // 1) Actually store the audio in hidden input
           storeRecordedAudio(buttonElement, audioURL, options.mimeType);
-          // Close the modal
+          // 2) Also display it in the checklist's preview
+          appendUploadPreview(buttonElement, newAudioItem);
+          // 3) Close the modal
           document.body.removeChild(modal);
         });
       };
@@ -1097,10 +1106,18 @@ function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blo
   } catch (err) {
     uploadsArray = [];
   }
+  // Make sure this item is in the array (in case user hits "Submit" from the popup)
+  // or if it's from fallback file input
   const newItem = { mediaType, fileName, fileType, blobURL };
-  uploadsArray.push(newItem);
-  hiddenInput.value = JSON.stringify(uploadsArray);
+  // If it's not already in the array, push it
+  const existingIdx = uploadsArray.findIndex(
+    item => item.fileName === fileName && item.blobURL === blobURL
+  );
+  if (existingIdx === -1) {
+    uploadsArray.push(newItem);
+  }
 
+  hiddenInput.value = JSON.stringify(uploadsArray);
   const storageKey = uploadGroupElem.getAttribute('data-storage-key');
   localStorage.setItem(storageKey, hiddenInput.value);
 
@@ -1128,6 +1145,7 @@ function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blo
     `;
   }
 
+  // Build the final preview item
   const mediaItem = document.createElement('div');
   mediaItem.classList.add('media-item');
   mediaItem.style.margin = '5px 0';
@@ -1138,6 +1156,7 @@ function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blo
       <button type="button" onclick="deleteUploadedItem(this, ${itemIndex})" style="margin-left:10px;">Delete</button>
     </div>
   `;
+
   previewContainer.appendChild(mediaItem);
 }
 
