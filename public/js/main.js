@@ -766,15 +766,15 @@ function uploadGroup(fieldName, modalId = "defaultModal") {
  ****************************************************************************/
 function uploadMedia(mediaType, buttonElement) {
   if (mediaType === 'audio') {
-    // For mobile devices: force using Chrome’s built-in recording UI.
+    // For mobile devices: force Chrome for best experience
     if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       if (!/Chrome/i.test(navigator.userAgent)) {
         alert("For the best audio recording experience, please use Google Chrome on your device.");
         fileInputFallback(mediaType, buttonElement);
         return;
       }
-      // Mobile Chrome and desktop: use our custom popup recorder.
-      console.log("Using custom popup recorder for audio capture.");
+      // Use our custom popup recorder on mobile Chrome
+      console.log("Using custom popup recorder for audio capture (mobile Chrome).");
       openAudioRecorderPopup(buttonElement);
       return;
     }
@@ -784,12 +784,12 @@ function uploadMedia(mediaType, buttonElement) {
       openAudioRecorderPopup(buttonElement);
       return;
     }
-    // Fallback (if MediaRecorder is not available)
+    // Otherwise fallback to file input
     console.log("Using file input fallback for mediaType:", mediaType);
     fileInputFallback(mediaType, buttonElement);
     return;
   }
-  // For photo/video, simply use file input fallback.
+  // For photo/video, simply use file input fallback
   fileInputFallback(mediaType, buttonElement);
 }
 
@@ -820,11 +820,12 @@ function openAudioRecorderPopup(buttonElement) {
     padding: '20px',
     borderRadius: '5px',
     textAlign: 'center',
-    width: '300px',
-    position: 'relative'
+    width: '320px',
+    position: 'relative',
+    fontFamily: 'sans-serif'
   });
 
-  // Close button
+  // Close button (X)
   const closeBtn = document.createElement('button');
   closeBtn.textContent = '×';
   Object.assign(closeBtn.style, {
@@ -844,26 +845,36 @@ function openAudioRecorderPopup(buttonElement) {
   // Title
   const titleEl = document.createElement('h3');
   titleEl.textContent = 'Record Audio';
+  titleEl.style.marginBottom = '10px';
   recorderContainer.appendChild(titleEl);
 
   // Status message
   const statusEl = document.createElement('p');
   statusEl.id = 'recorderStatus';
   statusEl.textContent = 'Not recording';
+  statusEl.style.margin = '8px 0';
   recorderContainer.appendChild(statusEl);
 
-  // Recorder UI (start/stop buttons)
+  // Buttons container
+  const buttonsDiv = document.createElement('div');
+  buttonsDiv.style.marginBottom = '10px';
+  recorderContainer.appendChild(buttonsDiv);
+
+  // Start button
   const startBtn = document.createElement('button');
   startBtn.id = 'startRecording';
   startBtn.textContent = 'Start Recording';
   startBtn.style.marginRight = '10px';
-  recorderContainer.appendChild(startBtn);
+  styleRecorderButton(startBtn);
+  buttonsDiv.appendChild(startBtn);
 
+  // Stop button
   const stopBtn = document.createElement('button');
   stopBtn.id = 'stopRecording';
   stopBtn.textContent = 'Stop Recording';
   stopBtn.disabled = true;
-  recorderContainer.appendChild(stopBtn);
+  styleRecorderButton(stopBtn);
+  buttonsDiv.appendChild(stopBtn);
 
   // Container for audio playback preview
   const audioPreview = document.createElement('div');
@@ -874,17 +885,15 @@ function openAudioRecorderPopup(buttonElement) {
   modal.appendChild(recorderContainer);
   document.body.appendChild(modal);
 
-  // Ensure getUserMedia is supported
+  // Check for getUserMedia support
   if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
     alert("Your browser does not support audio recording. Please try using Google Chrome over HTTPS.");
     document.body.removeChild(modal);
     return;
   }
 
-  // Request audio stream
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
-      // Recommended MIME type for Chrome (Opus in WebM)
       const options = { mimeType: 'audio/webm; codecs=opus' };
       let recorder;
       try {
@@ -911,16 +920,57 @@ function openAudioRecorderPopup(buttonElement) {
 
       recorder.onstop = () => {
         statusEl.textContent = "Processing...";
+        // Stop the mic stream
         stream.getTracks().forEach(track => track.stop());
         // Create a blob from the recorded data (WebM)
         const audioBlob = new Blob(chunks, { type: options.mimeType });
         console.log("Recorded blob type:", audioBlob.type);
+
         // Create a URL for playback
         const audioURL = URL.createObjectURL(audioBlob);
-        audioPreview.innerHTML = `<audio controls src="${audioURL}"></audio>`;
+        audioPreview.innerHTML = `
+          <audio controls style="display:block; margin: 0 auto;">
+            <source src="${audioURL}" type="${options.mimeType}" />
+            Your browser does not support audio playback.
+          </audio>
+        `;
         statusEl.textContent = "Recording complete.";
-        // Call helper to store the recorded audio in the corresponding upload group
-        storeRecordedAudio(buttonElement, audioURL);
+
+        // Add Replay & Delete inside the popup
+        const replayBtn = document.createElement('button');
+        replayBtn.textContent = 'Replay';
+        styleRecorderButton(replayBtn);
+        replayBtn.style.marginRight = '10px';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        styleRecorderButton(deleteBtn);
+
+        // Replay logic
+        replayBtn.addEventListener('click', () => {
+          const audioEl = audioPreview.querySelector('audio');
+          if (audioEl) {
+            audioEl.currentTime = 0;
+            audioEl.play();
+          }
+        });
+
+        // Delete logic
+        deleteBtn.addEventListener('click', () => {
+          audioPreview.innerHTML = '';
+          statusEl.textContent = "Recording deleted.";
+          // If you want to remove from the hidden input so it doesn't get saved:
+          storeRecordedAudio(buttonElement, null);
+        });
+
+        const btnDiv = document.createElement('div');
+        btnDiv.style.marginTop = '10px';
+        btnDiv.appendChild(replayBtn);
+        btnDiv.appendChild(deleteBtn);
+        audioPreview.appendChild(btnDiv);
+
+        // Store the audio in hidden input (unless user deletes)
+        storeRecordedAudio(buttonElement, audioURL, options.mimeType);
       };
 
       startBtn.addEventListener('click', e => {
@@ -946,10 +996,24 @@ function openAudioRecorderPopup(buttonElement) {
 }
 
 /****************************************************************************
- * Helper: storeRecordedAudio
+ * 4) Helper to style the recorder buttons
+ ****************************************************************************/
+function styleRecorderButton(btn) {
+  btn.style.backgroundColor = '#2196F3';
+  btn.style.color = '#fff';
+  btn.style.border = 'none';
+  btn.style.padding = '8px 14px';
+  btn.style.margin = '5px';
+  btn.style.borderRadius = '4px';
+  btn.style.cursor = 'pointer';
+  btn.style.fontSize = '14px';
+}
+
+/****************************************************************************
+ * 5) storeRecordedAudio
  * Appends the recorded audio URL to the hidden field in the upload group.
  ****************************************************************************/
-function storeRecordedAudio(buttonElement, audioURL) {
+function storeRecordedAudio(buttonElement, audioURL, mimeType = 'audio/webm') {
   const uploadGroupElem = buttonElement.closest('.upload-group');
   const hiddenInput = uploadGroupElem.querySelector('input[type="hidden"]');
   let uploadsArray = [];
@@ -958,24 +1022,33 @@ function storeRecordedAudio(buttonElement, audioURL) {
   } catch (err) {
     uploadsArray = [];
   }
-  // Here we store the audio as a WebM file. You can later convert it on the server if needed.
-  uploadsArray.push({
-    mediaType: 'audio',
-    fileName: 'recorded_audio.webm',
-    fileType: 'audio/webm',
-    blobURL: audioURL
-  });
+  if (audioURL === null) {
+    // Means user clicked "Delete" after finishing
+    // Remove the last entry if it's a webm
+    const idx = uploadsArray.findIndex(item => item.fileType === 'audio/webm');
+    if (idx !== -1) {
+      uploadsArray.splice(idx, 1);
+    }
+  } else {
+    uploadsArray.push({
+      mediaType: 'audio',
+      fileName: 'recorded_audio.webm',
+      fileType: mimeType,
+      blobURL: audioURL
+    });
+  }
   hiddenInput.value = JSON.stringify(uploadsArray);
   const storageKey = uploadGroupElem.getAttribute('data-storage-key');
   localStorage.setItem(storageKey, hiddenInput.value);
 }
 
 /****************************************************************************
- * 6) The <input type="file"/> fallback approach
+ * 6) File input fallback approach
  ****************************************************************************/
 function fileInputFallback(mediaType, buttonElement) {
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
+
   if (mediaType === 'photo') {
     fileInput.accept = 'image/*';
     fileInput.capture = 'environment';
@@ -986,6 +1059,7 @@ function fileInputFallback(mediaType, buttonElement) {
     fileInput.accept = 'audio/*';
     fileInput.capture = 'microphone';
   }
+
   fileInput.onchange = () => {
     if (fileInput.files && fileInput.files[0]) {
       const file = fileInput.files[0];
@@ -999,7 +1073,7 @@ function fileInputFallback(mediaType, buttonElement) {
 }
 
 /****************************************************************************
- * 8) appendUploadPreview: Append a preview of the uploaded/recorded media.
+ * 7) appendUploadPreview: show a quick preview after fallback or other media
  ****************************************************************************/
 function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blobURL }) {
   const uploadGroupElem = buttonElement.closest('.upload-group');
@@ -1013,10 +1087,13 @@ function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blo
   const newItem = { mediaType, fileName, fileType, blobURL };
   uploadsArray.push(newItem);
   hiddenInput.value = JSON.stringify(uploadsArray);
+
   const storageKey = uploadGroupElem.getAttribute('data-storage-key');
   localStorage.setItem(storageKey, hiddenInput.value);
+
   const previewContainer = uploadGroupElem.querySelector('.upload-preview-container');
   const itemIndex = uploadsArray.length - 1;
+
   let previewHTML = '';
   if (mediaType === 'photo') {
     previewHTML = `<img src="${blobURL}" alt="${fileName}" style="max-width:100px; height:auto; display:block;" />`;
@@ -1037,6 +1114,7 @@ function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blo
       <button type="button" onclick="replayMedia(this, 'audio')">Replay</button>
     `;
   }
+
   const mediaItem = document.createElement('div');
   mediaItem.classList.add('media-item');
   mediaItem.style.margin = '5px 0';
@@ -1051,7 +1129,7 @@ function appendUploadPreview(buttonElement, { mediaType, fileName, fileType, blo
 }
 
 /****************************************************************************
- * 9) replayMedia, deleteUploadedItem, reindexMediaItems
+ * 8) replayMedia, deleteUploadedItem, reindexMediaItems
  ****************************************************************************/
 function replayMedia(replayButton, type) {
   const container = replayButton.closest('.media-item');
@@ -1103,7 +1181,7 @@ function reindexMediaItems(uploadGroupElem) {
 }
 
 /****************************************************************************
- * 10) previewGroupAppend: Helper to append a preview item.
+ * 9) (Optional) If you want a helper to append item programmatically
  ****************************************************************************/
 function previewGroupAppend(buttonElement, mediaItem) {
   const uploadGroupElem = buttonElement.closest('.upload-group');
