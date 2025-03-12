@@ -2,21 +2,21 @@ version: '3.8'
 
 services:
   app:
-    build: .
     container_name: telecom-survey-app
+    build: .
     ports:
       - "8080:8080"
     environment:
       - PORT=8080
       - MONGODB_URI=mongodb://mongo:27017/fleet_management_prehoto
-      - JWT_SECRET=shakthi  # Consider using secrets or .env files in production
+      - JWT_SECRET=shakthi  # In production, use secrets or .env
     depends_on:
       - mongo
     restart: always
 
   mongo:
-    image: mongo:6
     container_name: mongodb
+    image: mongo:6
     ports:
       - "27017:27017"
     environment:
