@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const apiKey = 'oNPStFf3JMcXlMMkijejrRuhEuW25N55xUqrwYvG'; // Replace with your actual API key
-  window.olamapsApiKey = apiKey; // Expose for global routing calls
+  window.olaMaps = new OlaMaps({ apiKey: apiKey }); // Expose for global routing calls
   
 // Register Service Worker for PWA support
 if ('serviceWorker' in navigator) {
@@ -38,7 +38,7 @@ if (headerElement) {
   const autoFit = true;
   
   // Initialize the map and store it globally on window.myMap
-  window.myMap = olaMaps.init({
+  window.myMap = window.olaMaps.init({
     style: "https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/style.json",
     container: 'map',
     center: [75.238167, 30.322],
@@ -110,7 +110,7 @@ if (headerElement) {
       }
   
       let globalAssignments = result.data;
-  
+      window.markers = {};
       // Helper function to add a marker with a custom popup and Final Checklist button
       function addMarker(lng, lat, doc) {
         const markerEl = document.createElement('div');
@@ -145,15 +145,22 @@ if (headerElement) {
             <p><strong>Coordinates:</strong> (${lng.toFixed(5)}, ${lat.toFixed(5)})</p>
             <button onclick="navigateRoute(${lng}, ${lat}, '${doc.type}')" style="margin: 5px; padding: 5px 10px;">${navigateButtonText}</button>
             <button onclick="finishChecklist(${JSON.stringify(doc).replace(/"/g, '&quot;')})" style="margin: 5px; padding: 5px 10px;">Final Checklist</button>
+            <!-- 3) Pop Validation button -->
+      <button
+        onclick="openPopValidationPopup(${JSON.stringify(doc).replace(/"/g, '&quot;')})"
+        style="margin: 5px; padding: 5px 10px;"
+      >
+        Pop Validation
+      </button>
           </div>
         `;
       
-        const popup = olaMaps.addPopup({
+        const popup = window.olaMaps.addPopup({
           offset: [0, -30],
           anchor: 'bottom'
         }).setHTML(popupContent);
       
-        olaMaps.addMarker({
+        const marker = window.olaMaps.addMarker({
           element: markerEl,
           anchor: 'bottom',
           offset: [0, -16]
@@ -161,6 +168,8 @@ if (headerElement) {
         .setLngLat([lng, lat])
         .setPopup(popup)
         .addTo(window.myMap);
+
+        window.markers[doc._id] = marker;
       
         console.log(`Added marker for ${doc.type} with phase "${doc.phase}" at [${lng}, ${lat}]`);
         allLats.push(lat);
@@ -376,6 +385,344 @@ window.navigateRoute = async function(lng, lat, type) {
     alert("Error requesting route. See console for details.");
   }
 };
+
+/***************************************
+ * openPopValidationPopup: Opens a popup to capture the correct coordinates
+ ***************************************/
+function openPopValidationPopup(doc) {
+  // Create a semi-transparent backdrop
+  const modal = document.createElement('div');
+  Object.assign(modal.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: '9999'
+  });
+
+  // Create the white container in the center
+  const container = document.createElement('div');
+  Object.assign(container.style, {
+    backgroundColor: '#fff',
+    padding: '20px',
+    borderRadius: '5px',
+    textAlign: 'center',
+    fontFamily: 'sans-serif',
+    width: '320px'
+  });
+
+  const msg = document.createElement('p');
+  msg.textContent = "Go to the actual location and then click the button below to capture the correct coordinates.";
+  container.appendChild(msg);
+
+  // "Capture Correct Corrds" button
+  const captureBtn = document.createElement('button');
+  captureBtn.textContent = "Capture Correct Corrds";
+  stylePopupButton(captureBtn);
+  captureBtn.style.marginRight = "10px";
+  captureBtn.onclick = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const newCoords = {
+            lat: pos.coords.latitude,
+            long: pos.coords.longitude
+          };
+          alert(`Captured coords: ${newCoords.lat.toFixed(5)}, ${newCoords.long.toFixed(5)}`);
+          // Update the marker on the map with these new coords
+          updateMarkerCoordinates(doc, newCoords);
+          // Optionally, you can also send an update to your backend here.
+          document.body.removeChild(modal);
+        },
+        (err) => {
+          alert("Error capturing location: " + err.message);
+        }
+      );
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  };
+  container.appendChild(captureBtn);
+
+  // "Cancel" button
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = "Cancel";
+  stylePopupButton(cancelBtn);
+  cancelBtn.onclick = () => {
+    document.body.removeChild(modal);
+  };
+  container.appendChild(cancelBtn);
+
+  modal.appendChild(container);
+  document.body.appendChild(modal);
+}
+
+/***************************************
+ * Helper function: stylePopupButton
+ ***************************************/
+function stylePopupButton(btn) {
+  btn.style.backgroundColor = '#2196F3';
+  btn.style.color = '#fff';
+  btn.style.border = 'none';
+  btn.style.padding = '8px 14px';
+  btn.style.margin = '5px';
+  btn.style.borderRadius = '4px';
+  btn.style.cursor = 'pointer';
+  btn.style.fontSize = '14px';
+}
+/***************************************
+ * Helper function: updateMarkerCoordinates
+ * This function updates the marker’s location on the map,
+ * moves the map view to the new location, and then opens a
+ * confirmation popup asking the user to confirm the new location.
+ * If the user clicks "No", the old marker is re‑added.
+ ***************************************/
+function updateMarkerCoordinates(doc, newCoords) {
+  console.log("Updating marker for doc:", doc._id, "with new coords:", newCoords);
+
+  // Ensure the global markers object exists.
+  if (!window.markers) {
+    window.markers = {};
+  }
+  
+  // Save the old marker (if any) and its coordinates.
+  let oldMarker = window.markers[doc._id];
+  let oldCoords = null;
+  if (oldMarker) {
+    oldCoords = oldMarker.getLngLat();
+    oldMarker.remove();
+    console.log("Old marker removed. Old coordinates:", oldCoords);
+  } else {
+    console.warn("Marker for doc", doc._id, "not found. A new marker will be created.");
+  }
+  
+  // Create a new marker element (using the same styling as before).
+  const markerEl = document.createElement('div');
+  markerEl.style.width = '32px';
+  markerEl.style.height = '32px';
+  markerEl.style.backgroundSize = 'contain';
+  markerEl.style.backgroundRepeat = 'no-repeat';
+  markerEl.style.backgroundPosition = 'center';
+  
+  if (doc.type === 'BQ') {
+    markerEl.style.backgroundImage = "url('./assets/bq_marker.png')";
+  } else {
+    if (doc.phase === 'PHASE-1' || doc.phase === 'PHASE-2') {
+      markerEl.style.backgroundImage = "url('./assets/brown_marker.png')";
+    } else if (doc.phase === 'Newly created') {
+      markerEl.style.backgroundImage = "url('./assets/green_marker.png')";
+    } else {
+      markerEl.style.backgroundImage = "url('./assets/default_marker.png')";
+    }
+  }
+  
+  // Build the popup content with the new coordinates.
+  const popupContent = `
+    <div style="font-family: Arial, sans-serif; font-size: 14px;">
+      <p><strong>${doc.type === 'GP' ? 'GP Name' : 'BQ Name'}:</strong> ${
+    doc.type === 'GP' ? (doc.gpName || doc.name || 'Unknown') : (doc.block || 'Unknown')
+  }</p>
+      <p><strong>Updated Coordinates:</strong> (${newCoords.long.toFixed(5)}, ${newCoords.lat.toFixed(5)})</p>
+      <button onclick="navigateRoute(${newCoords.long}, ${newCoords.lat}, '${doc.type}')" style="margin: 5px; padding: 5px 10px;">Navigate</button>
+      <button onclick="finishChecklist(${JSON.stringify(doc).replace(/"/g, '&quot;')})" style="margin: 5px; padding: 5px 10px;">Final Checklist</button>
+      <button onclick="openPopValidationPopup(${JSON.stringify(doc).replace(/"/g, '&quot;')})" style="margin: 5px; padding: 5px 10px;">Pop Validation</button>
+    </div>
+  `;
+  
+  // Create a popup and a new marker at the new coordinates.
+  // (Make sure window.olaMaps is available—assign it globally when initializing your map.)
+  const popup = window.olaMaps.addPopup({
+    offset: [0, -30],
+    anchor: 'bottom'
+  }).setHTML(popupContent);
+  
+  const newMarker = window.olaMaps.addMarker({
+    element: markerEl,
+    anchor: 'bottom',
+    offset: [0, -16]
+  })
+    .setLngLat([newCoords.long, newCoords.lat])
+    .setPopup(popup)
+    .addTo(window.myMap);
+  
+  // Update the global marker reference.
+  window.markers[doc._id] = newMarker;
+  console.log("New marker added at new coordinates.");
+
+  // Move (fly) the map to the new marker location.
+  window.myMap.flyTo({
+    center: [newCoords.long, newCoords.lat],
+    zoom: 16,
+    speed: 1.2
+  });
+  
+  // Now open the confirmation popup.
+  openConfirmLocationPopup(doc, newCoords, oldCoords);
+}
+
+/***************************************
+ * Helper function: openConfirmLocationPopup
+ * Opens a popup asking the user to confirm the new location.
+ * If confirmed, an API call is made to update the DB.
+ * If not confirmed, the marker is reverted to the old location.
+ ***************************************/
+function openConfirmLocationPopup(doc, newCoords, oldCoords) {
+  // Create a modal backdrop for the confirmation popup.
+  const modal = document.createElement('div');
+  modal.id = 'confirmLocationModal';
+  Object.assign(modal.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: '3000'
+  });
+  
+  // Create the container for the confirmation message and buttons.
+  const container = document.createElement('div');
+  Object.assign(container.style, {
+    backgroundColor: '#fff',
+    padding: '20px',
+    borderRadius: '5px',
+    textAlign: 'center',
+    fontFamily: 'sans-serif',
+    width: '320px'
+  });
+  
+  // Message text
+  const message = document.createElement('p');
+  message.textContent = `Do you confirm this is the correct location for ${doc.type === 'GP' ? (doc.gpName || doc.name || 'the GP') : (doc.block || 'the BQ')}?`;
+  container.appendChild(message);
+  
+  // Confirm button
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = 'Confirm';
+  stylePopupButton(confirmBtn);
+  confirmBtn.style.marginRight = '10px';
+  container.appendChild(confirmBtn);
+  
+  // No (revert) button
+  const noBtn = document.createElement('button');
+  noBtn.textContent = 'No';
+  stylePopupButton(noBtn);
+  container.appendChild(noBtn);
+  
+  modal.appendChild(container);
+  document.body.appendChild(modal);
+  
+  // Confirm action: send update to DB and close the confirmation popup.
+  confirmBtn.addEventListener('click', () => {
+    fetch(`/api/update-coords/${doc._id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: newCoords.lat, long: newCoords.long })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert("Location updated successfully in the database.");
+      } else {
+        alert("Failed to update location in the database.");
+      }
+    })
+    .catch(err => {
+      console.error("Error updating location in DB:", err);
+      alert("Error updating location in the database.");
+    });
+    document.body.removeChild(modal);
+  });
+  
+  // No action: revert marker to old coordinates.
+  noBtn.addEventListener('click', () => {
+    // Remove the new marker.
+    if (window.markers && window.markers[doc._id]) {
+      window.markers[doc._id].remove();
+    }
+    // Re-add the old marker if oldCoords is available.
+    if (oldCoords) {
+      // Create a new marker element with the same styling.
+      const markerEl = document.createElement('div');
+      markerEl.style.width = '32px';
+      markerEl.style.height = '32px';
+      markerEl.style.backgroundSize = 'contain';
+      markerEl.style.backgroundRepeat = 'no-repeat';
+      markerEl.style.backgroundPosition = 'center';
+      
+      if (doc.type === 'BQ') {
+        markerEl.style.backgroundImage = "url('./assets/bq_marker.png')";
+      } else {
+        if (doc.phase === 'PHASE-1' || doc.phase === 'PHASE-2') {
+          markerEl.style.backgroundImage = "url('./assets/brown_marker.png')";
+        } else if (doc.phase === 'Newly created') {
+          markerEl.style.backgroundImage = "url('./assets/green_marker.png')";
+        } else {
+          markerEl.style.backgroundImage = "url('./assets/default_marker.png')";
+        }
+      }
+      
+      // Create a popup with the old coordinates.
+      const popupContent = `
+        <div style="font-family: Arial, sans-serif; font-size: 14px;">
+          <p><strong>${doc.type === 'GP' ? 'GP Name' : 'BQ Name'}:</strong> ${
+        doc.type === 'GP' ? (doc.gpName || doc.name || 'Unknown') : (doc.block || 'Unknown')
+      }</p>
+          <p><strong>Coordinates:</strong> (${oldCoords.lng.toFixed(5)}, ${oldCoords.lat.toFixed(5)})</p>
+          <button onclick="navigateRoute(${oldCoords.lng}, ${oldCoords.lat}, '${doc.type}')" style="margin: 5px; padding: 5px 10px;">Navigate</button>
+          <button onclick="finishChecklist(${JSON.stringify(doc).replace(/"/g, '&quot;')})" style="margin: 5px; padding: 5px 10px;">Final Checklist</button>
+          <button onclick="openPopValidationPopup(${JSON.stringify(doc).replace(/"/g, '&quot;')})" style="margin: 5px; padding: 5px 10px;">Pop Validation</button>
+        </div>
+      `;
+      
+      const popup = window.olaMaps.addPopup({
+        offset: [0, -30],
+        anchor: 'bottom'
+      }).setHTML(popupContent);
+      
+      const revertedMarker = window.olaMaps.addMarker({
+        element: markerEl,
+        anchor: 'bottom',
+        offset: [0, -16]
+      })
+        .setLngLat([oldCoords.lng, oldCoords.lat])
+        .setPopup(popup)
+        .addTo(window.myMap);
+      
+      // Update the global marker reference.
+      window.markers[doc._id] = revertedMarker;
+      alert("Reverted to the original location.");
+      // Optionally, fly back to the old marker location.
+      window.myMap.flyTo({ center: [oldCoords.lng, oldCoords.lat], zoom: 16, speed: 1.2 });
+    } else {
+      console.warn("No old coordinates available to revert marker.");
+    }
+    document.body.removeChild(modal);
+  });
+}
+
+/***************************************
+ * Helper function: stylePopupButton
+ ***************************************/
+function stylePopupButton(btn) {
+  btn.style.backgroundColor = '#2196F3';
+  btn.style.color = '#fff';
+  btn.style.border = 'none';
+  btn.style.padding = '8px 14px';
+  btn.style.margin = '5px';
+  btn.style.borderRadius = '4px';
+  btn.style.cursor = 'pointer';
+  btn.style.fontSize = '14px';
+}
+
 
 /****************************************************************************
  * finishChecklist, showBrownChecklistForm, showGreenChecklistForm

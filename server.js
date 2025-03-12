@@ -8,10 +8,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // <-- Import jsonwebtoken
 
 const app = express();
-const port = process.env.PORT || 8080;  // Use port 8080
+const port = process.env.PORT || 8080;  // Use port from env, default to 8080
 
-// Replace with a safer secret in production (use environment variables)
-const JWT_SECRET = 'shakthi';
+// Use environment variables for sensitive data (use .env or Docker Compose in production)
+const JWT_SECRET = process.env.JWT_SECRET || 'shakthi';
+// Use the MONGODB_URI environment variable if provided, otherwise default to local MongoDB
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fleet_management_prehoto';
 
 // 1) Body parsing & CORS
 app.use(bodyParser.json());
@@ -25,15 +27,12 @@ app.get('/', (req, res) => {
 // 3) Serve static files from "public" directory
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
-// 4) MongoDB connection with extra TLS options for development
-const atlasUri = 'mongodb+srv://shakthi:shakthi@cluster0.shxml.mongodb.net/fleet_management_prehoto?retryWrites=true&w=majority';
-mongoose.connect(atlasUri, {
+// 4) MongoDB connection (using environment variable or default)
+mongoose.connect(mongoUri, {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
-  tls: true,                            // ensure TLS is used
-  tlsAllowInvalidCertificates: true     // allow invalid certificates (development only)
+  useUnifiedTopology: true
 })
-  .then(() => console.log('MongoDB (Atlas) connected'))
+  .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 
 // 5) User schema & model (collection: user_data)
@@ -74,7 +73,7 @@ const SiteAssignment = mongoose.model('SiteAssignment', siteAssignmentSchema);
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
@@ -92,7 +91,7 @@ function authenticateToken(req, res, next) {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    
+
     // Find user by username in 'user_data'
     const user = await User.findOne({ username });
     if (!user) {
