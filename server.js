@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // <-- Import jsonwebtoken
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 8080;  // Use port from env, default to 8080
@@ -13,7 +14,8 @@ const port = process.env.PORT || 8080;  // Use port from env, default to 8080
 // Use environment variables for sensitive data (use .env or Docker Compose in production)
 const JWT_SECRET = process.env.JWT_SECRET || 'shakthi';
 // Use the MONGODB_URI environment variable if provided, otherwise default to local MongoDB
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fleet_management_prehoto';
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://shakthi:shakthi@cluster0.shxml.mongodb.net/fleet_management_prehoto?retryWrites=true&w=majority';
+
 
 // 1) Body parsing & CORS
 app.use(bodyParser.json());
