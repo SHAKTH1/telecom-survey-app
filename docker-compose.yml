@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     container_name: telecom-survey-app
@@ -8,22 +6,8 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
-      - MONGODB_URI=mongodb://mongo:27017/fleet_management_prehoto
-      - JWT_SECRET=shakthi  # In production, use secrets or .env
+      - MONGODB_URI=mongodb+srv://shakthi:shakthi@cluster0.shxml.mongodb.net/fleet_management_prehoto?retryWrites=true&w=majority
+      - JWT_SECRET=shakthi
     depends_on:
-      - mongo
+      - mongo  # Optionally, you can remove this if you no longer need the local mongo container
     restart: always
-
-  mongo:
-    container_name: mongodb
-    image: mongo:6
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: fleet_management_prehoto
-    volumes:
-      - mongo-data:/data/db
-    restart: always
-
-volumes:
-  mongo-data:
